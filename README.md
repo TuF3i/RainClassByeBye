@@ -12,10 +12,10 @@
 - `fatih/color` 彩色日志
 - RainClassSDK cookie 持久化，默认保存在 `cache/cookies.json`
 - 基于 Eino 的 OpenAI-compatible ChatModel 自动答题
-- 默认模型为 `qwen3.6-max`
+- 默认模型为 `qwen3.7-plus`
 - 支持任务中断恢复
 - 默认使用 20 个 goroutine worker 并发求解
-- 提供用户、课程、作业、考试相关信息获取命令
+- 提供用户、课程、作业信息获取命令
 
 ## 依赖
 
@@ -102,29 +102,7 @@ go run . info homework --cid <classroom_id>
 ### 作业详情
 
 ```bash
-go run . info homework-details --cid <classroom_id> --leaf-id <leaf_id>
-```
-
-### 作业/考试封面
-
-```bash
-go run . info homework-cover --cid <classroom_id> --exam-id <exam_id>
-```
-
-### 试卷题目
-
-会先调用 `StartExam`，因此不是纯只读操作：
-
-```bash
-go run . info exam-paper --cid <classroom_id> --exam-id <exam_id>
-```
-
-### 剩余时间
-
-同样会先调用 `StartExam`：
-
-```bash
-go run . info exam-time --cid <classroom_id> --exam-id <exam_id>
+go run . info homework --cid <classroom_id> --leaf-id <leaf_id>
 ```
 
 ## 自动答题
@@ -141,7 +119,7 @@ go run . run --cid <classroom_id> --exam-id <exam_id>
 --api-key <key>
 --api-key-env DASHSCOPE_API_KEY
 --base-url https://dashscope.aliyuncs.com/compatible-mode/v1
---model qwen3.6-max
+--model qwen3.7-plus
 --workers 20
 --temperature 0.1
 --request-timeout 2m
@@ -200,7 +178,7 @@ go run . status --cid <classroom_id> --exam-id <exam_id>
 
 ```text
 Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1
-Model:    qwen3.6-max
+Model:    qwen3.7-plus
 ```
 
 如果你要切换模型或兼容接口，可以直接覆盖：

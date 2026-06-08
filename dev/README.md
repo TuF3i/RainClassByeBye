@@ -635,7 +635,7 @@ sdk.StartExam(cid, examID)
    │      - user:   [图片URL数组, 题目JSON文本]
    │
    ├─ [3] POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-   │       Body: {"model":"qwen3.6-plus", "messages":[...], "stream":false}
+   │       Body: {"model":"qwen3.7-plus", "messages":[...], "stream":false}
    │       Header: Authorization: Bearer {DASHSCOPE_API_KEY}
    │
    ├─ [4] 解析 Qwen 返回: DeepSeekAnswer{ProblemId, Result}
@@ -653,7 +653,7 @@ sdk.StartExam(cid, examID)
 
 **关键设计：**
 - 使用阿里云 DashScope 兼容 OpenAI 格式的 API 端点（`/compatible-mode/v1/chat/completions`）
-- 使用 `qwen3.6-plus` 多模态模型，支持图片 + 文本输入
+- 使用 `qwen3.7-plus` 多模态模型，支持图片 + 文本输入
 - 图片直接传递原始 URL（非 Base64），减少 token 消耗
 - 响应结构复用 `DeepSeekChatCompletionResponse`（兼容 OpenAI Chat Completions 格式）
 - 做题范围：遍历所有题目，逐题解答、逐题提交

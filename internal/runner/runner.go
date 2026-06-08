@@ -101,12 +101,19 @@ func (r *Runner) Execute(ctx context.Context) error {
 		return fmt.Errorf("试卷数据为空")
 	}
 
-	taskState.MarkStarted(len(paper.Data.Problems), paper.Data.Title)
-	if err := state.Save(r.opts.StatePath, taskState); err != nil {
-		return err
+	pending := taskState.Pending(paper.Data.Problems)
+	if len(pending) > 0 {
+		taskState.MarkStarted(len(paper.Data.Problems), paper.Data.Title)
+		if err := state.Save(r.opts.StatePath, taskState); err != nil {
+			return err
+		}
+	} else {
+		taskState.TotalProblems = len(paper.Data.Problems)
+		if paper.Data.Title != "" {
+			taskState.ExamTitle = paper.Data.Title
+		}
 	}
 
-	pending := taskState.Pending(paper.Data.Problems)
 	if len(pending) == 0 {
 		r.opts.Logger.Success("没有待处理题目")
 		return r.finishIfNeeded(sdk, taskState, paper.Data.Problems)
@@ -269,7 +276,10 @@ func (r *Runner) finishIfNeeded(sdk *RainClassSDK.SDK, taskState *state.ExamStat
 	if err != nil {
 		return err
 	}
-	resp, err := sdk.SubmitPaper(r.opts.ExamID, results)
+	if err := sdk.Close(); err != nil {
+		return fmt.Errorf("交卷前保存考试 cookie 失败: %w", err)
+	}
+	resp, err := submitPaper(r.opts.CookiePath, r.opts.ExamID, results)
 	if err != nil {
 		return err
 	}

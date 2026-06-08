@@ -621,7 +621,7 @@ func Test_AIFuck(t *testing.T) {
 
 		// 构建请求体
 		requestBody := map[string]interface{}{
-			"model":    "qwen3.6-plus", // 通义千问视觉语言模型
+			"model":    "qwen3.7-plus", // 通义千问视觉语言模型
 			"messages": messages,
 			"stream":   false,
 		}

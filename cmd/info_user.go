@@ -20,7 +20,15 @@ var infoUserCmd = &cobra.Command{
 			return err
 		}
 		log.Success("用户信息获取成功")
-		return writeJSON(cmd, data)
+
+		rows := [][]string{
+			{"姓名", data.Data.Name},
+			{"学号", data.Data.SchoolNumber},
+			{"学校", data.Data.School},
+			{"用户 ID", data.Data.Id},
+		}
+
+		return writeTable(cmd, []string{"字段", "值"}, rows)
 	},
 }
 

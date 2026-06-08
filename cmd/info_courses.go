@@ -20,7 +20,19 @@ var infoCoursesCmd = &cobra.Command{
 			return err
 		}
 		log.Success("课程列表获取成功，共 %d 门", len(data.CourseData.List))
-		return writeJSON(cmd, data)
+
+		rows := make([][]string, 0, len(data.CourseData.List))
+		for _, course := range data.CourseData.List {
+			rows = append(rows, []string{
+				formatMaybeString(course.ClassroomId),
+				truncateText(course.Course.Name, 7),
+				truncateText(course.Name, 7),
+				truncateText(course.Teacher.Name, 7),
+				formatMaybeString(course.StudentsCount),
+			})
+		}
+
+		return writeTable(cmd, []string{"CID", "课程", "班级", "教师", "人数"}, rows)
 	},
 }
 

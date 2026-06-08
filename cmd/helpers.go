@@ -1,14 +1,16 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	RainClassSDK "github.com/Auto-CQUPT-Plan/RainClassSDK"
+	"github.com/scylladb/termtables"
 	"github.com/spf13/cobra"
 
 	"RainClassByeBye/internal/logging"
@@ -31,7 +33,7 @@ type aiFlags struct {
 
 func defaultAIFlags() aiFlags {
 	return aiFlags{
-		Model:               "qwen3.6-max",
+		Model:               "qwen3.7-plus",
 		BaseURL:             "https://dashscope.aliyuncs.com/compatible-mode/v1",
 		APIKeyEnv:           "DASHSCOPE_API_KEY",
 		RequestTimeout:      2 * time.Minute,
@@ -120,14 +122,92 @@ func buildRunnerOptions(log *logging.Logger, cfg aiFlags, cid, examID int64, res
 	}, nil
 }
 
-func writeJSON(cmd *cobra.Command, v any) error {
-	buf := new(bytes.Buffer)
-	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(v); err != nil {
-		return err
+func writeTable(cmd *cobra.Command, headers []string, rows [][]string) error {
+	table := termtables.CreateTable()
+	if len(headers) > 0 {
+		headerVals := make([]interface{}, 0, len(headers))
+		for _, header := range headers {
+			headerVals = append(headerVals, header)
+		}
+		table.AddHeaders(headerVals...)
 	}
-	_, err := cmd.OutOrStdout().Write(buf.Bytes())
+
+	for _, row := range rows {
+		rowVals := make([]interface{}, 0, len(row))
+		for _, col := range row {
+			rowVals = append(rowVals, col)
+		}
+		table.AddRow(rowVals...)
+	}
+
+	_, err := io.WriteString(cmd.OutOrStdout(), table.Render())
 	return err
+}
+
+func formatMillis(ms int64) string {
+	if ms <= 0 {
+		return "-"
+	}
+	return time.UnixMilli(ms).Local().Format("2006-01-02 15:04")
+}
+
+func formatMillisFloat(ms float64) string {
+	return formatMillis(int64(ms))
+}
+
+func formatBool(v bool) string {
+	if v {
+		return "是"
+	}
+	return "否"
+}
+
+func formatMaybeString(v any) string {
+	switch value := v.(type) {
+	case nil:
+		return "-"
+	case string:
+		if strings.TrimSpace(value) == "" {
+			return "-"
+		}
+		return value
+	case fmt.Stringer:
+		text := strings.TrimSpace(value.String())
+		if text == "" {
+			return "-"
+		}
+		return text
+	case int:
+		return strconv.Itoa(value)
+	case int64:
+		return strconv.FormatInt(value, 10)
+	case float64:
+		return strconv.FormatFloat(value, 'f', -1, 64)
+	case bool:
+		return formatBool(value)
+	default:
+		return fmt.Sprintf("%v", value)
+	}
+}
+
+func formatLeafType(leafType int64) string {
+	switch leafType {
+	case 5:
+		return "作业"
+	case 8:
+		return "教学活动"
+	default:
+		return strconv.FormatInt(leafType, 10)
+	}
+}
+
+func truncateText(s string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	runes := []rune(strings.TrimSpace(s))
+	if len(runes) <= limit {
+		return string(runes)
+	}
+	return string(runes[:limit])
 }

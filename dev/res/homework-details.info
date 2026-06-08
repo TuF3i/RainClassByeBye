@@ -1,0 +1,65 @@
+
+ RainClass Homework Details 
+[13:29:07] [ OK ] 作业详情获取成功
+{
+  "msg": "",
+  "data": {
+    "upgrade_sku_status": null,
+    "publish_time": 1774240349000,
+    "is_assessed": true,
+    "locked_reason": null,
+    "price": 0,
+    "sku_name": "免费",
+    "user_role": 3,
+    "be_in_force": true,
+    "current_price": 0,
+    "third_platform_code": "xt",
+    "class_start_time": 1769875200000,
+    "upgrade_sku_id": null,
+    "university_id": 3042,
+    "score_deadline": 1774972799000,
+    "course_id": 1927402,
+    "user_id": 57510820,
+    "teacher": {},
+    "is_score": true,
+    "third_platform_name": "主站",
+    "sku_id": 11893568,
+    "is_deleted": false,
+    "name": "第七章 微分方程章节练习2",
+    "content_info": {
+      "status": "post",
+      "video_user_play": null,
+      "expand_discuss": false,
+      "score_evaluation": {
+        "score_proportion": {
+          "proportion": 0.5
+        },
+        "score": 1,
+        "id": 2000,
+        "name": "资源自定义_2000"
+      },
+      "download": [],
+      "is_score": true,
+      "is_discuss": false,
+      "remark": {
+        "remark": ""
+      },
+      "cover_desc": "",
+      "cover_thumbnail": "",
+      "media": {},
+      "cover": "",
+      "leaf_type_id": 1822729,
+      "is_attachment_download": true,
+      "context": ""
+    },
+    "classroom_id": "24211265",
+    "is_locked": false,
+    "leaf_type": 5,
+    "id": 43318472,
+    "has_classend": false,
+    "classroom_short_name": null,
+    "is_open_type": false,
+    "class_end_time": 1785513599000
+  },
+  "success": true
+}

@@ -35,4 +35,10 @@ func TestBuildSubmitPaperResults(t *testing.T) {
 	if len(results) != 2 || results[0].ProblemId != 10 || results[1].ProblemId != 20 {
 		t.Fatalf("unexpected results: %#v", results)
 	}
+	if len(results[0].Result) != 1 || results[0].Result[0] != "A" {
+		t.Fatalf("problem 10 answer missing from submit payload: %#v", results[0])
+	}
+	if len(results[1].Result) != 1 || results[1].Result[0] != "B" {
+		t.Fatalf("problem 20 answer missing from submit payload: %#v", results[1])
+	}
 }
