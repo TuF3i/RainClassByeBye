@@ -133,6 +133,7 @@ go run . run --cid <classroom_id> --exam-id <exam_id>
 - 会并发请求模型，但逐题提交答案
 - 默认只提交每道题，不自动交卷
 - 只有显式加 `--submit-paper` 才会最终交卷
+- 平台风控要求答题完成后至少等待 20 分钟再交卷；过早调用 `submit_paper` 可能失败
 
 示例：
 
@@ -150,6 +151,12 @@ go run . run \
 
 ```bash
 go run . resume --cid <classroom_id> --exam-id <exam_id>
+```
+
+如果本次恢复是为了最终交卷，建议在全部题目提交完成后等待至少 20 分钟，再执行：
+
+```bash
+go run . resume --cid <classroom_id> --exam-id <exam_id> --submit-paper
 ```
 
 状态文件默认保存在：
