@@ -1,5 +1,7 @@
 github.com/Auto-CQUPT-Plan/RainClassSDK v0.0.0-20260525130729-80268a7db153 h1:RoKEd1/zEN7IVEkvV02TEnbkRAEUaiz2FU+8h62bdHs=
 github.com/Auto-CQUPT-Plan/RainClassSDK v0.0.0-20260525130729-80268a7db153/go.mod h1:lq/tq1f1r79MzzWYoT7HjyxwEuTqGVT1PtCGZTVM0DA=
+github.com/Auto-CQUPT-Plan/RainClassSDK v1.1.0 h1:MuC0QFK+UjBVdaQW6j5Fj6JKOVwO8BUMpXT7f0wygTU=
+github.com/Auto-CQUPT-Plan/RainClassSDK v1.1.0/go.mod h1:lq/tq1f1r79MzzWYoT7HjyxwEuTqGVT1PtCGZTVM0DA=
 github.com/airbrake/gobrake v3.6.1+incompatible/go.mod h1:wM4gu3Cn0W0K7GUuVWnlXZU11AGBXMILnrdOU8Kn00o=
 github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055 h1:IkPAzP+QjchKXXFX6LCcpDKa89b/e/0gPCUbQGWtUUY=
 github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055/go.mod h1:8mHYHlOef9UC51cK1/WRvE/iQVM8O8QlYFa8eh8r5I8=

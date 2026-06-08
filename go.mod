@@ -3,7 +3,7 @@ module RainClassByeBye
 go 1.26.4
 
 require (
-	github.com/Auto-CQUPT-Plan/RainClassSDK v0.0.0-20260525130729-80268a7db153
+	github.com/Auto-CQUPT-Plan/RainClassSDK v1.1.0
 	github.com/cloudwego/eino v0.9.4
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
 	github.com/fatih/color v1.19.0
