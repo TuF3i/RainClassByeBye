@@ -68,13 +68,14 @@ var infoHomeworkCmd = &cobra.Command{
 					truncateText(chapter.Name, 7),
 					truncateText(leaf.Name, 7),
 					formatLeafType(leaf.LeafType),
+					formatCompletion(leaf.IsAssessed),
 					formatMillis(leaf.StartTime),
 					formatMillis(leaf.ScoreDeadline),
 				})
 			}
 		}
 
-		return writeTable(cmd, []string{"Leaf ID", "章节", "标题", "类型", "开始时间", "截止时间"}, rows)
+		return writeTable(cmd, []string{"Leaf ID", "章节", "标题", "类型", "完成", "开始时间", "截止时间"}, rows)
 	},
 }
 

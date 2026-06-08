@@ -47,6 +47,26 @@ func New(opts Options) *Runner {
 	return &Runner{opts: opts}
 }
 
+func (r *Runner) prepareAnswer(problem models.ProblemsEntity, answer solver.Answer, raw string) (solver.Answer, error) {
+	normalized, err := solver.NormalizeForSubmission(problem, answer)
+	if err == nil {
+		return normalized, nil
+	}
+
+	fallback, ok := solver.RandomChoiceFallback(problem)
+	if !ok {
+		return solver.Answer{}, err
+	}
+
+	r.opts.Logger.Warn(
+		"problem=%d 解析结果不合法，提交前改用随机合法选项=%s，原始响应片段=%q",
+		problem.ProblemId,
+		strings.Join(fallback.Result, ","),
+		truncateForLog(raw, 120),
+	)
+	return fallback, nil
+}
+
 func (r *Runner) Execute(ctx context.Context) error {
 	if r.opts.CID == 0 || r.opts.ExamID == 0 {
 		return fmt.Errorf("cid 和 exam-id 不能为空")
@@ -174,6 +194,17 @@ func (r *Runner) Execute(ctx context.Context) error {
 			continue
 		}
 
+		result.Answer, err = r.prepareAnswer(result.Problem, result.Answer, result.Raw)
+		if err != nil {
+			failed++
+			r.opts.Logger.Error("problem=%d 答案校验失败: %v", result.Problem.ProblemId, err)
+			taskState.MarkFailure(result.Problem.ProblemId, err)
+			if saveErr := state.Save(r.opts.StatePath, taskState); saveErr != nil {
+				return saveErr
+			}
+			continue
+		}
+
 		submitResp, err := sdk.SubmitAnswer(r.opts.ExamID, models.SubmitAnswerResultsEntity{
 			ProblemId: result.Problem.ProblemId,
 			Result:    result.Answer.Result,
@@ -276,6 +307,20 @@ func (r *Runner) finishIfNeeded(sdk *RainClassSDK.SDK, taskState *state.ExamStat
 	if err != nil {
 		return err
 	}
+	for i, problem := range problems {
+		record := taskState.Answered[state.ProblemKey(problem.ProblemId)]
+		answer, sanitizeErr := r.prepareAnswer(problem, solver.Answer{
+			ProblemID: problem.ProblemId,
+			Result:    results[i].Result,
+		}, record.ModelRawOutput)
+		if sanitizeErr != nil {
+			return fmt.Errorf("problem=%d 交卷前答案校验失败: %w", problem.ProblemId, sanitizeErr)
+		}
+
+		results[i].Result = append([]string(nil), answer.Result...)
+		record.Result = append([]string(nil), answer.Result...)
+		taskState.Answered[state.ProblemKey(problem.ProblemId)] = record
+	}
 	if err := sdk.Close(); err != nil {
 		return fmt.Errorf("交卷前保存考试 cookie 失败: %w", err)
 	}
@@ -294,4 +339,15 @@ func (r *Runner) finishIfNeeded(sdk *RainClassSDK.SDK, taskState *state.ExamStat
 
 	r.opts.Logger.Success("交卷完成")
 	return nil
+}
+
+func truncateForLog(raw string, limit int) string {
+	raw = strings.TrimSpace(raw)
+	if len(raw) <= limit {
+		return raw
+	}
+	if limit <= 3 {
+		return raw[:limit]
+	}
+	return raw[:limit-3] + "..."
 }

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -131,7 +133,11 @@ func (s *Solver) Solve(ctx context.Context, problem models.ProblemsEntity) (Answ
 
 	answer, structuredErr := parseStructuredAnswer(raw, problem.ProblemId)
 	if structuredErr == nil {
-		return answer, raw, nil
+		answer, structuredErr = NormalizeForSubmission(problem, answer)
+		if structuredErr == nil {
+			return answer, raw, nil
+		}
+		structuredErr = fmt.Errorf("结构化答案不合法: %w", structuredErr)
 	}
 	structuredErr = annotateModelResponseError(structuredErr, raw, responseMeta)
 
@@ -147,19 +153,43 @@ func (s *Solver) Solve(ctx context.Context, problem models.ProblemsEntity) (Answ
 	if repairErr == nil {
 		answer, repairedErr := parseStructuredAnswer(repairedRaw, problem.ProblemId)
 		if repairedErr == nil {
-			return answer, repairedRaw, nil
+			answer, repairedErr = NormalizeForSubmission(problem, answer)
+			if repairedErr == nil {
+				return answer, repairedRaw, nil
+			}
+			repairedErr = fmt.Errorf("结构化答案不合法: %w", repairedErr)
 		}
 		repairedErr = annotateModelResponseError(repairedErr, repairedRaw, repairedMeta)
 		if answer, err = parseHeuristicAnswer(repairedRaw, problem); err == nil {
-			return answer, repairedRaw, nil
+			answer, err = NormalizeForSubmission(problem, answer)
+			if err == nil {
+				return answer, repairedRaw, nil
+			}
 		}
 		err = annotateModelResponseError(err, repairedRaw, repairedMeta)
 	}
 
 	if answer, err = parseHeuristicAnswer(raw, problem); err == nil {
-		return answer, raw, nil
+		answer, err = NormalizeForSubmission(problem, answer)
+		if err == nil {
+			return answer, raw, nil
+		}
 	}
 	err = annotateModelResponseError(err, raw, responseMeta)
+
+	if fallback, ok := RandomChoiceFallback(problem); ok {
+		if s.logger != nil {
+			s.logger.Warn(
+				"problem=%d 无法提取合法选项答案，使用随机合法选项兜底=%s",
+				problem.ProblemId,
+				strings.Join(fallback.Result, ","),
+			)
+		}
+		if strings.TrimSpace(repairedRaw) != "" {
+			return fallback, repairedRaw, nil
+		}
+		return fallback, raw, nil
+	}
 
 	if repairErr != nil {
 		return Answer{}, raw, fmt.Errorf("%w；二次结构化失败: %v", structuredErr, repairErr)
@@ -181,12 +211,12 @@ func extractImageURLs(problem models.ProblemsEntity) []string {
 func parseAnswer(raw string, problem models.ProblemsEntity) (Answer, error) {
 	answer, err := parseStructuredAnswer(raw, problem.ProblemId)
 	if err == nil {
-		return answer, nil
+		return NormalizeForSubmission(problem, answer)
 	}
 
 	answer, heuristicErr := parseHeuristicAnswer(raw, problem)
 	if heuristicErr == nil {
-		return answer, nil
+		return NormalizeForSubmission(problem, answer)
 	}
 	return Answer{}, err
 }
@@ -339,6 +369,42 @@ func normalizeResult(in []string) []string {
 		out = append(out, item)
 	}
 	return out
+}
+
+func NormalizeForSubmission(problem models.ProblemsEntity, answer Answer) (Answer, error) {
+	result := normalizeResult(answer.Result)
+	if len(result) == 0 {
+		return Answer{}, fmt.Errorf("答案为空")
+	}
+
+	normalized := Answer{
+		ProblemID: problem.ProblemId,
+		Result:    result,
+	}
+
+	if len(problem.Options) == 0 {
+		return normalized, nil
+	}
+
+	choiceResult := normalizeChoiceResult(result, optionKeySet(problem.Options))
+	if len(choiceResult) == 0 {
+		return Answer{}, fmt.Errorf("选择题答案不包含合法选项: %#v", answer.Result)
+	}
+	normalized.Result = choiceResult
+	return normalized, nil
+}
+
+func RandomChoiceFallback(problem models.ProblemsEntity) (Answer, bool) {
+	keys := sortedOptionKeys(problem.Options)
+	if len(keys) == 0 {
+		return Answer{}, false
+	}
+
+	rng := rand.New(rand.NewSource(time.Now().UnixNano() ^ problem.ProblemId))
+	return Answer{
+		ProblemID: problem.ProblemId,
+		Result:    []string{keys[rng.Intn(len(keys))]},
+	}, true
 }
 
 func splitLoose(raw string) []string {
@@ -562,6 +628,31 @@ func optionKeySet(options []models.OptionsEntity) map[string]struct{} {
 		keys[key] = struct{}{}
 	}
 	return keys
+}
+
+func sortedOptionKeys(options []models.OptionsEntity) []string {
+	keySet := optionKeySet(options)
+	keys := make([]string, 0, len(keySet))
+	for key := range keySet {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func normalizeChoiceResult(result []string, keys map[string]struct{}) []string {
+	out := make([]string, 0, len(result))
+	seen := make(map[string]struct{}, len(result))
+	for _, item := range result {
+		for _, key := range extractOptionKeys(item, keys) {
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, key)
+		}
+	}
+	return out
 }
 
 func parseDirectOptionTokens(raw string, keys map[string]struct{}) []string {

@@ -107,6 +107,65 @@ func TestParseAnswerChineseOptionCue(t *testing.T) {
 	}
 }
 
+func TestParseAnswerRejectsNarrativeJSONResultForChoiceQuestion(t *testing.T) {
+	_, err := parseAnswer(`{"problem_id":123,"result":["用户要求我解答一道数学题,并以特定的JSON格式返回答案。"]}`, models.ProblemsEntity{
+		ProblemId: 123,
+		Options: []models.OptionsEntity{
+			{Key: "A"},
+			{Key: "B"},
+			{Key: "C"},
+			{Key: "D"},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected parseAnswer to reject narrative choice result")
+	}
+}
+
+func TestNormalizeForSubmissionExtractsChoiceKeys(t *testing.T) {
+	answer, err := NormalizeForSubmission(models.ProblemsEntity{
+		ProblemId: 123,
+		Options: []models.OptionsEntity{
+			{Key: "A"},
+			{Key: "B"},
+			{Key: "C"},
+			{Key: "D"},
+		},
+	}, Answer{
+		ProblemID: 123,
+		Result:    []string{"答案应该选 c"},
+	})
+	if err != nil {
+		t.Fatalf("NormalizeForSubmission returned error: %v", err)
+	}
+	if len(answer.Result) != 1 || answer.Result[0] != "C" {
+		t.Fatalf("unexpected normalized result: %#v", answer.Result)
+	}
+}
+
+func TestRandomChoiceFallbackReturnsLegalOption(t *testing.T) {
+	answer, ok := RandomChoiceFallback(models.ProblemsEntity{
+		ProblemId: 123,
+		Options: []models.OptionsEntity{
+			{Key: "A"},
+			{Key: "B"},
+			{Key: "C"},
+			{Key: "D"},
+		},
+	})
+	if !ok {
+		t.Fatal("expected fallback answer")
+	}
+	if len(answer.Result) != 1 {
+		t.Fatalf("unexpected fallback result: %#v", answer.Result)
+	}
+	switch answer.Result[0] {
+	case "A", "B", "C", "D":
+	default:
+		t.Fatalf("fallback result is not a legal option: %#v", answer.Result)
+	}
+}
+
 func TestParseAnswerBoxedNarrative(t *testing.T) {
 	answer, err := parseAnswer("题目要求计算积分。\n最终可得 $\\boxed{0}$。", models.ProblemsEntity{ProblemId: 123})
 	if err != nil {
@@ -282,10 +341,6 @@ func TestSolveReportsEmptyResponseMetadata(t *testing.T) {
 
 	_, _, err := s.Solve(context.Background(), models.ProblemsEntity{
 		ProblemId: 123,
-		Options: []models.OptionsEntity{
-			{Key: "A"},
-			{Key: "B"},
-		},
 	})
 	if err == nil {
 		t.Fatal("expected Solve to fail")
@@ -298,5 +353,44 @@ func TestSolveReportsEmptyResponseMetadata(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "completion_tokens=32") {
 		t.Fatalf("expected token usage in error, got: %v", err)
+	}
+}
+
+func TestSolveFallsBackToLegalChoiceOption(t *testing.T) {
+	model := &stubChatModel{
+		responses: []*schema.Message{
+			{Content: `{"problem_id":123,"result":["用户要求我解答一道数学题,并以特定的JSON格式返回答案。"]}`},
+			{Content: `{"problem_id":123,"result":["还是返回说明文本"]}`},
+		},
+	}
+	s := &Solver{
+		model:        model,
+		modelName:    "test-model",
+		requestTTL:   time.Second,
+		systemPrompt: "system",
+	}
+
+	answer, _, err := s.Solve(context.Background(), models.ProblemsEntity{
+		ProblemId: 123,
+		Options: []models.OptionsEntity{
+			{Key: "A"},
+			{Key: "B"},
+			{Key: "C"},
+			{Key: "D"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Solve returned error: %v", err)
+	}
+	if len(answer.Result) != 1 {
+		t.Fatalf("unexpected answer length: %#v", answer.Result)
+	}
+	switch answer.Result[0] {
+	case "A", "B", "C", "D":
+	default:
+		t.Fatalf("Solve fallback is not a legal option: %#v", answer.Result)
+	}
+	if len(model.calls) != 2 {
+		t.Fatalf("expected 2 model calls, got %d", len(model.calls))
 	}
 }

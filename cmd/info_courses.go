@@ -26,7 +26,7 @@ var infoCoursesCmd = &cobra.Command{
 			rows = append(rows, []string{
 				formatMaybeString(course.ClassroomId),
 				truncateText(course.Course.Name, 7),
-				truncateText(course.Name, 7),
+				truncateText(course.Name, 15),
 				truncateText(course.Teacher.Name, 7),
 				formatMaybeString(course.StudentsCount),
 			})

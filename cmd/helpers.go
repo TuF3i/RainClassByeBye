@@ -10,6 +10,7 @@ import (
 	"time"
 
 	RainClassSDK "github.com/Auto-CQUPT-Plan/RainClassSDK"
+	"github.com/fatih/color"
 	"github.com/scylladb/termtables"
 	"github.com/spf13/cobra"
 
@@ -127,7 +128,7 @@ func writeTable(cmd *cobra.Command, headers []string, rows [][]string) error {
 	if len(headers) > 0 {
 		headerVals := make([]interface{}, 0, len(headers))
 		for _, header := range headers {
-			headerVals = append(headerVals, header)
+			headerVals = append(headerVals, color.New(color.FgHiWhite, color.Bold).Sprint(header))
 		}
 		table.AddHeaders(headerVals...)
 	}
@@ -146,9 +147,9 @@ func writeTable(cmd *cobra.Command, headers []string, rows [][]string) error {
 
 func formatMillis(ms int64) string {
 	if ms <= 0 {
-		return "-"
+		return color.New(color.FgHiBlack).Sprint("-")
 	}
-	return time.UnixMilli(ms).Local().Format("2006-01-02 15:04")
+	return color.New(color.FgCyan).Sprint(time.UnixMilli(ms).Local().Format("2006-01-02 15:04"))
 }
 
 func formatMillisFloat(ms float64) string {
@@ -157,24 +158,31 @@ func formatMillisFloat(ms float64) string {
 
 func formatBool(v bool) string {
 	if v {
-		return "是"
+		return color.New(color.FgGreen, color.Bold).Sprint("是")
 	}
-	return "否"
+	return color.New(color.FgHiBlack).Sprint("否")
+}
+
+func formatCompletion(v bool) string {
+	if v {
+		return color.New(color.FgGreen, color.Bold).Sprint("已完成")
+	}
+	return color.New(color.FgYellow, color.Bold).Sprint("未完成")
 }
 
 func formatMaybeString(v any) string {
 	switch value := v.(type) {
 	case nil:
-		return "-"
+		return color.New(color.FgHiBlack).Sprint("-")
 	case string:
 		if strings.TrimSpace(value) == "" {
-			return "-"
+			return color.New(color.FgHiBlack).Sprint("-")
 		}
 		return value
 	case fmt.Stringer:
 		text := strings.TrimSpace(value.String())
 		if text == "" {
-			return "-"
+			return color.New(color.FgHiBlack).Sprint("-")
 		}
 		return text
 	case int:
@@ -193,9 +201,9 @@ func formatMaybeString(v any) string {
 func formatLeafType(leafType int64) string {
 	switch leafType {
 	case 5:
-		return "作业"
+		return color.New(color.FgMagenta, color.Bold).Sprint("作业")
 	case 8:
-		return "教学活动"
+		return color.New(color.FgBlue, color.Bold).Sprint("教学活动")
 	default:
 		return strconv.FormatInt(leafType, 10)
 	}
